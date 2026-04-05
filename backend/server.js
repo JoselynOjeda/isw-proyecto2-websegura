@@ -13,10 +13,14 @@ app.use(express.json());
 // Importar rutas
 const authRoutes = require('./routes/auth');
 const productosRoutes = require('./routes/productos');
+const auditoriaRoutes = require('./routes/auditoria');
+
 
 // Usar las rutas (Todo lo de auth empezará con /api/auth)
 app.use('/api/auth', authRoutes);
 app.use('/api/productos', productosRoutes);
+app.use('/api/auditoria', auditoriaRoutes);
+
 
 // Ruta base
 app.get('/', (req, res) => {
