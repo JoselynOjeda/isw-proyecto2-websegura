@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:3000', // Confirma con Joselyn el puerto del backend
-    withCredentials: true // Permite el envío automático de cookies seguras
+    // Borramos el baseURL para que Vite haga la redirección invisible a través de Ngrok
+    withCredentials: true // Permite el envío automático de cookies seguras (No borrar)
 });
 
 export default api;

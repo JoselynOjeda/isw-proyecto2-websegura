@@ -24,7 +24,7 @@ const Products = () => {
   const fetchProducts = async () => {
     try {
       // FIX: URL completa para evitar 404
-      const response = await api.get('http://localhost:3000/api/productos');
+      const response = await api.get('/api/productos');
       setProducts(response.data);
     } catch (err) {
       console.error("Error al obtener productos", err);
@@ -62,7 +62,7 @@ const Products = () => {
 
     try {
       // FIX: URL completa y método POST
-      await api.post('http://localhost:3000/api/productos', formData);
+      await api.post('/api/productos', formData);
       setFormData({ codigo: '', nombre: '', descripcion: '', cantidad: '', precio: '' });
       setMsg("✅ Producto agregado con éxito");
       fetchProducts(); // Recargamos la tabla
@@ -77,7 +77,7 @@ const Products = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("¿Estás seguro de eliminar este producto?")) return;
     try {
-      await api.delete(`http://localhost:3000/api/productos/${id}`);
+      await api.delete(`/api/productos/${id}`);
       fetchProducts();
     } catch (err) {
       alert(err.response?.data?.error || "Error al eliminar");

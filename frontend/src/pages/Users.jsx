@@ -14,7 +14,8 @@ const Users = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await api.get('http://localhost:3000/api/auth/usuarios');
+      // 👇 CAMBIO 1: Quitamos el localhost
+      const response = await api.get('/api/auth/usuarios');
       setUsers(response.data);
     } catch (err) {
       if (err.response?.status === 401 || err.response?.status === 403) {
@@ -28,7 +29,8 @@ const Users = () => {
     setError(''); setMsg(''); setLoading(true);
     const roleIds = { 'SuperAdmin': 1, 'Auditor': 2, 'Registrador': 3 };
     try {
-      await api.post('http://localhost:3000/api/auth/register', {
+      // 👇 CAMBIO 2: Quitamos el localhost
+      await api.post('/api/auth/register', {
         username: formData.username,
         password: formData.password,
         email: `${formData.username.toLowerCase().replace(/\s/g, '')}@sistema.com`, 
@@ -46,7 +48,8 @@ const Users = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("¿Seguro que deseas eliminar este usuario?")) return;
     try {
-      await api.delete(`http://localhost:3000/api/auth/usuarios/${id}`);
+      // 👇 CAMBIO 3: Quitamos el localhost
+      await api.delete(`/api/auth/usuarios/${id}`);
       fetchUsers();
     } catch (err) { alert(err.response?.data?.error || "Error al eliminar"); }
   };
@@ -56,7 +59,8 @@ const Users = () => {
     const newRole = prompt("Nuevo ID de Rol (1=SuperAdmin, 2=Auditor, 3=Registrador):", user.rol_id);
     if (newUsername && newRole) {
       try {
-        await api.put(`http://localhost:3000/api/auth/usuarios/${user.id}`, { username: newUsername, rol_id: newRole });
+        // 👇 CAMBIO 4: Quitamos el localhost
+        await api.put(`/api/auth/usuarios/${user.id}`, { username: newUsername, rol_id: newRole });
         fetchUsers();
       } catch (err) { alert("Error al editar"); }
     }

@@ -9,7 +9,7 @@ const Auditoria = () => {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const response = await api.get('http://localhost:3000/api/auditoria');
+        const response = await api.get('/api/auditoria');
         setLogs(response.data);
       } catch (err) {
         setError('Acceso denegado. Este módulo es exclusivo para el equipo de Seguridad y Administración.');

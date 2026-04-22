@@ -9,8 +9,9 @@ const app = express();
 // Middlewares de seguridad básicos
 app.use(helmet()); 
 app.use(cors({
-  origin: 'http://localhost:5173', 
-  credentials: true                // Permite que viajen las cookies HttpOnly
+  // 👇 CAMBIO 1: Autorizamos localhost Y cualquier link de ngrok
+  origin: ['http://localhost:5173', /ngrok\.app$/, /ngrok-free\.dev$/], 
+  credentials: true                
 })); 
 app.use(express.json()); 
 app.use(cookieParser());           // ACTIVAR COOKIE-PARSER
@@ -21,8 +22,8 @@ app.use((req, res, next) => {
     if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
         const origin = req.headers.origin || req.headers.referer;
         
-        // Verificamos que la petición venga exclusivamente de tu frontend en React
-        if (!origin || !origin.includes('http://localhost:5173')) {
+        // 👇 CAMBIO 2: Verificamos que venga de React local o de Ngrok
+        if (!origin || (!origin.includes('localhost:5173') && !origin.includes('ngrok'))) {
             console.warn(`[CSRF Alert] Intento bloqueado desde origen: ${origin}`);
             return res.status(403).json({ error: 'RS-03: Petición bloqueada por protección CSRF.' });
         }
