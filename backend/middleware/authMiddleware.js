@@ -1,9 +1,8 @@
 const jwt = require('jsonwebtoken');
 
 const verificarToken = (req, res, next) => {
-    // Obtener el token del header 'Authorization'
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Formato: Bearer TOKEN
+    // RS-05: Ahora buscamos el token en las cookies seguras, no en el Header
+    const token = req.cookies.token;
 
     if (!token) {
         return res.status(401).json({ error: 'Acceso denegado. No se proporcionó un token.' });
@@ -11,8 +10,8 @@ const verificarToken = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.usuario = decoded; // Guardamos los datos del usuario (id, rol) en la petición
-        next(); // Permitir que pase a la siguiente función
+        req.usuario = decoded; 
+        next(); 
     } catch (error) {
         res.status(403).json({ error: 'Token no válido o expirado.' });
     }

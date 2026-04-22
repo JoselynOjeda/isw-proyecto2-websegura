@@ -5,6 +5,18 @@ const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const pool = require('../db'); // Importamos la conexión a la BD
 
+// Función interna para registrar en Auditoría (RF-06)
+const registrarAuditoria = async (usuario_id, evento, ip, ruta) => {
+    try {
+        await pool.query(
+            'INSERT INTO auditoria (usuario_id, evento, ip_origen, ruta_solicitada) VALUES ($1, $2, $3, $4)',
+            [usuario_id, evento, ip, ruta]
+        );
+    } catch (err) { 
+        console.error('Error en log de auditoría:', err); 
+    }
+};
+
 // RS-07: Rate Limiting para el Login (Bloquea tras 5 intentos fallidos por 5 minutos)
 const loginLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutos
@@ -23,7 +35,7 @@ router.post('/register', async (req, res) => {
         const saltRounds = 12;
         const passwordHash = await bcrypt.hash(password, saltRounds);
 
-        // RS-01: Protección contra SQL Injection (Usando $1, $2 en lugar de concatenar)
+        // RS-01: Protección contra SQL Injection
         const query = `
             INSERT INTO usuarios (username, password_hash, email, rol_id) 
             VALUES ($1, $2, $3, $4) RETURNING id, username, email;
@@ -39,12 +51,12 @@ router.post('/register', async (req, res) => {
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Error al registrar el usuario (¿Quizás el correo o usuario ya existe?)' });
+        res.status(500).json({ error: 'Error al registrar el usuario' });
     }
 });
 
 // ==========================================
-// 2. LOGIN DE USUARIO (RF-07 y RS-05)
+// 2. LOGIN DE USUARIO (RF-07, RS-05 y RF-06)
 // ==========================================
 router.post('/login', loginLimiter, async (req, res) => {
     const { email, password } = req.body;
@@ -54,6 +66,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         const userQuery = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
         
         if (userQuery.rows.length === 0) {
+            await registrarAuditoria(null, `LOGIN FALLIDO (Correo no existe): ${email}`, req.ip, '/api/auth/login');
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
 
@@ -63,22 +76,31 @@ router.post('/login', loginLimiter, async (req, res) => {
         const validPassword = await bcrypt.compare(password, user.password_hash);
         
         if (!validPassword) {
+            await registrarAuditoria(user.id, 'LOGIN FALLIDO (Clave incorrecta)', req.ip, '/api/auth/login');
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
 
         // RS-05: Generar Token JWT válido por 1 hora
         const token = jwt.sign(
-            { id: user.id, rol_id: user.rol_id }, // Payload (datos que viajan en el token)
-            process.env.JWT_SECRET,               // Firma secreta
-            { expiresIn: '1h', algorithm: 'HS256' } // Algoritmo seguro y expiración
+            { id: user.id, rol_id: user.rol_id }, 
+            process.env.JWT_SECRET,               
+            { expiresIn: '1h', algorithm: 'HS256' } 
         );
 
         // Actualizar la fecha del último login
         await pool.query('UPDATE usuarios SET ultimo_login = CURRENT_TIMESTAMP WHERE id = $1', [user.id]);
 
-        res.json({ 
-            mensaje: 'Login exitoso', 
-            token: token 
+        // RF-06: Registrar login exitoso en auditoría
+        await registrarAuditoria(user.id, 'LOGIN EXITOSO', req.ip, '/api/auth/login');
+
+        // RS-05: Enviar el Token en una Cookie HttpOnly (Protección XSS)
+        res.cookie('token', token, {
+            httpOnly: true, // El navegador no deja que JavaScript lo lea (Evita XSS)
+            secure: false,  // Poner en true solo si usas HTTPS
+            maxAge: 3600000 // 1 hora
+        }).json({ 
+            mensaje: 'Login exitoso',
+            rol: user.rol_id // Le mandamos el rol al frontend para saber a qué pantalla enviarlo
         });
 
     } catch (error) {
