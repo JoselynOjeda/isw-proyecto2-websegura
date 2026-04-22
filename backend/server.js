@@ -7,7 +7,10 @@ const app = express();
 
 // Middlewares de seguridad básicos
 app.use(helmet()); 
-app.use(cors()); 
+app.use(cors({
+  origin: 'http://localhost:5173', 
+  credentials: true                // Permite que viajen las cookies HttpOnly
+})); 
 app.use(express.json()); 
 
 // Importar rutas
