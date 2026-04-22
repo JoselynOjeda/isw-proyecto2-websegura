@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const pool = require('../db'); // Importamos la conexión a la BD
+const verificarToken = require('../middleware/authMiddleware'); // <-- NUEVO: Importamos el Guardaespaldas
 
 // Función interna para registrar en Auditoría (RF-06)
 const registrarAuditoria = async (usuario_id, evento, ip, ruta) => {
@@ -100,12 +101,61 @@ router.post('/login', loginLimiter, async (req, res) => {
             maxAge: 3600000 // 1 hora
         }).json({ 
             mensaje: 'Login exitoso',
-            rol: user.rol_id // Le mandamos el rol al frontend para saber a qué pantalla enviarlo
+            rol: user.rol_id 
         });
 
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Error en el servidor durante el login' });
+    }
+});
+
+// ==========================================
+// 3. LISTAR USUARIOS (NUEVA RUTA RF-04)
+// ==========================================
+router.get('/usuarios', verificarToken, async (req, res) => {
+    try {
+        // Seleccionamos todo EXCEPTO el password_hash por seguridad
+        const result = await pool.query(
+            'SELECT id, username, email, rol_id, ultimo_login FROM usuarios ORDER BY id ASC'
+        );
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error al obtener usuarios:', error);
+        res.status(500).json({ error: 'Error al cargar la lista de usuarios' });
+    }
+});
+
+// ==========================================
+// 4. EDITAR USUARIO (Solo SuperAdmin)
+// ==========================================
+router.put('/usuarios/:id', verificarToken, async (req, res) => {
+    const { rol_id, id: admin_id } = req.usuario;
+    if (rol_id !== 1) return res.status(403).json({ error: 'Solo el SuperAdmin puede editar usuarios.' });
+
+    const { username, rol_id: nuevo_rol } = req.body;
+    try {
+        await pool.query('UPDATE usuarios SET username = $1, rol_id = $2 WHERE id = $3', [username, nuevo_rol, req.params.id]);
+        await registrarAuditoria(admin_id, `EDITAR USUARIO ID: ${req.params.id}`, req.ip, `/api/auth/usuarios/${req.params.id}`);
+        res.json({ mensaje: 'Usuario actualizado correctamente' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al editar usuario' });
+    }
+});
+
+// ==========================================
+// 5. ELIMINAR USUARIO (Solo SuperAdmin)
+// ==========================================
+router.delete('/usuarios/:id', verificarToken, async (req, res) => {
+    const { rol_id, id: admin_id } = req.usuario;
+    if (rol_id !== 1) return res.status(403).json({ error: 'Solo el SuperAdmin puede eliminar usuarios.' });
+
+    try {
+        await pool.query('DELETE FROM usuarios WHERE id = $1', [req.params.id]);
+        await registrarAuditoria(admin_id, `ELIMINAR USUARIO ID: ${req.params.id}`, req.ip, `/api/auth/usuarios/${req.params.id}`);
+        res.json({ mensaje: 'Usuario eliminado correctamente' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al eliminar usuario' });
     }
 });
 
