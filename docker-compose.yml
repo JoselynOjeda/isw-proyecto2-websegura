@@ -1,0 +1,53 @@
+services:
+  # 1. SERVICIO DE BASE DE DATOS
+  db:
+    image: postgres:16-alpine
+    container_name: websegura_db
+    restart: unless-stopped
+    environment:
+      # ¡CORRECCIÓN! El contenedor de BD exige la palabra POSTGRES_
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. SERVICIO DEL BACKEND
+  backend:
+    build: ./backend
+    container_name: websegura_backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # El Backend sí usa la palabra DB_
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: admin123
+      DB_NAME: postgres
+      JWT_SECRET: super_secreto_para_el_proyecto_isw_2026
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # 3. SERVICIO DEL FRONTEND
+  frontend:
+    build: ./frontend
+    container_name: websegura_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

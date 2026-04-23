@@ -5,10 +5,13 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
+    // 1. OBLIGATORIO PARA DOCKER: Permite que la página salga del contenedor
+    host: true, 
+    
     allowedHosts: true,
     proxy: {
-      // Magia: Todo lo que vaya a /api, Vite se lo pasa al backend en secreto
-      '/api': 'http://localhost:3000'
+      // 2. CAMBIO CLAVE: Cambiamos "localhost" por "backend"
+      '/api': 'http://backend:3000' 
     }
   }
 })

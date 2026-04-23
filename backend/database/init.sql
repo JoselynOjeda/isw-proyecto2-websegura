@@ -38,3 +38,20 @@ CREATE TABLE auditoria (
     ruta_solicitada VARCHAR(255),
     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 1. Activamos el superpoder de encriptación en Postgres
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- 2. Limpiamos por si acaso
+DELETE FROM usuarios WHERE email = 'haru@sistema.com';
+
+-- 3. Insertamos usando la función crypt()
+-- 'bf' significa Blowfish (el algoritmo de bcrypt)
+-- '12' es el factor de costo que tienes en tu código de Node
+INSERT INTO usuarios (username, email, password_hash, rol_id) 
+VALUES (
+    'HaruAdmin', 
+    'haru@sistema.com', 
+    crypt('admin123', gen_salt('bf', 12)), 
+    1
+);
