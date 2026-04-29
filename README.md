@@ -19,11 +19,13 @@ El proyecto está dockerizado para facilitar su despliegue, incluyendo la base d
    Ejecuta el siguiente comando para construir las imágenes y levantar los servicios en segundo plano:
    ```bash
    docker-compose up -d --build
+   ```
 
 ### Verificar los servicios
 Una vez que termine el proceso, puedes comprobar que los contenedores están corriendo con:
 ```bash
 docker ps
+```
 
 # 🚀 Guía de Configuración y Uso del Sistema
 
