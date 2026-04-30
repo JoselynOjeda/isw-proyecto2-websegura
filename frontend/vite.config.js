@@ -11,7 +11,7 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       // 2. CAMBIO CLAVE: Cambiamos "localhost" por "backend"
-      '/api': 'http://backend:3000' 
+      '/api': 'http://localhost:3000'
     }
   }
 })
